@@ -21,6 +21,7 @@ from ai import Dqn
 # Adding this line if we don't want the right click to put a red point
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
+# Variables to track the mouse pointer interaction with canvas.
 # Introducing last_x and last_y, used to keep the last point in memory when we draw the sand on the map
 last_x = 0
 last_y = 0
@@ -70,6 +71,7 @@ class Car(Widget):
     signal2 = NumericProperty(0)
     signal3 = NumericProperty(0)
 
+# move : implementing vehicle movement and defining the sand detection via sensors.
     def move(self, rotation):
         #Updating variables of car
         self.rotation = rotation
@@ -98,7 +100,8 @@ class Ball2(Widget):
 class Ball3(Widget):
     pass
 
-# Creating the game class
+# Creating the Game class
+# Game class interacts with the DL model and the car movement takes place accordingly.
 
 class Game(Widget):
 
