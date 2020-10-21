@@ -1,5 +1,3 @@
- # AI for Self Driving Car
-
 # Importing the libraries
 
 import random
@@ -11,7 +9,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 # Creating the architecture of the Neural Network
-
+# Contains 2 hidden layers of 30 and 20 nodes respectively.
 class Network(nn.Module):
     
     def __init__(self, input_size, nb_action):
@@ -28,7 +26,8 @@ class Network(nn.Module):
         q_values = self.fc3(y)
         return q_values
 
-# Implementing Experience Replay
+# Implementing Experience Replay using FIFO Queue
+# Replay memory is useful to avoid overfitting and get data to implement Deep-Q Learning.
 
 class ReplayMemory(object):
     
@@ -45,7 +44,7 @@ class ReplayMemory(object):
         samples = zip(*random.sample(self.memory, batch_size))
         return map(lambda x: Variable(torch.cat(x, 0)), samples)
 
-# Implementing Deep Q Learning
+# Class Dqn: Implementing Deep Q Learning
 
 class Dqn():
     
@@ -59,11 +58,13 @@ class Dqn():
         self.last_action = 0
         self.last_reward = 0
     
+# select_action : Used to get the next action performed, using softmax function to bring randomness and allow further exploration
     def select_action(self, state):
         probs = F.softmax(self.model(Variable(state, volatile = True))*500) # T=100
         action = probs.multinomial(num_samples=1)
         return action.data[0,0]
     
+# learn : Based on the previous states & rewards, passes the value to model and implements Deep Q Learning based optimization 
     def learn(self, batch_state, batch_next_state, batch_reward, batch_action):
         outputs = self.model(batch_state).gather(1, batch_action.unsqueeze(1)).squeeze(1)
         next_outputs = self.model(batch_next_state).detach().max(1)[0]
@@ -72,7 +73,10 @@ class Dqn():
         self.optimizer.zero_grad()
         td_loss.backward()
         self.optimizer.step()
-    
+
+# update : updates the value of all the variables after each state change and passes it to the model. 
+# learning states after 100 moves are taken, reward window contains last 1000 rewards. 
+# returns the action to be taken next !
     def update(self, reward, new_signal):
         new_state = torch.Tensor(new_signal).float().unsqueeze(0)
         self.memory.push((self.last_state, new_state, torch.LongTensor([int(self.last_action)]), torch.Tensor([self.last_reward])))
@@ -87,15 +91,18 @@ class Dqn():
         if len(self.reward_window) > 1000:
             del self.reward_window[0]
         return action
-    
+
+# score : used to maintain the average of last window sized values; Model is trained to maximize this
     def score(self):
         return sum(self.reward_window)/(len(self.reward_window)+1.)
-    
+
+# save : Save the current state of the model.
     def save(self):
         torch.save({'state_dict': self.model.state_dict(),
                     'optimizer' : self.optimizer.state_dict(),
                    }, 'last_brain.pth')
-    
+                   
+# load : Load the previously saved state.
     def load(self):
         if os.path.isfile('last_brain.pth'):
             print("=> loading checkpoint... ")
